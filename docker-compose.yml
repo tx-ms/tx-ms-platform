@@ -1,0 +1,120 @@
+version: '3.3'
+services:
+  discovery:
+    container_name: tx_ms_discovery
+    build:
+      context: ./discovery
+    environment:
+      - PORT=8761
+      - HOSTNAME=localhost
+    ports:
+      - 8761:8761
+    expose:
+      - 8761
+  gateway:
+    container_name: tx_ms_gateway
+    build:
+      context: ./gateway
+    environment:
+      - PORT=8002
+      - EUREKA_HOSTNAME=discovery
+      - EUREKA_PORT=8761
+      - TOKEN_SECRET=myt0k3ns3cr3t!!
+    depends_on:
+      - discovery
+    ports:
+      - 8002:8002
+  broker:
+    container_name: tx_ms_broker
+    image: rabbitmq:3-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+    expose:
+      - 5672
+      - 15672
+  writer_api:
+    container_name: tx_ms_writer_api
+    build:
+      context: ./api/writer
+    environment:
+      - PORT=8003
+      - EUREKA_HOSTNAME=discovery
+      - EUREKA_PORT=8761
+      - BROKER_HOSTNAME=broker
+      - BROKER_PORT=5672
+    depends_on:
+      - discovery
+      - broker
+    ports:
+      - 8003:8003
+  users_db:
+    container_name: tx_ms_users_db
+    image: postgres
+    volumes:
+      - ./api/users/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=pwd_users
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=users
+  users:
+    container_name: tx_ms_users
+    build:
+      context: ./api/users
+    depends_on:
+      - users_db
+      - broker
+      - discovery
+    ports:
+    - 8004:8004
+    environment:
+      - PORT=8004
+      - DB_TYPE=postgresql
+      - DB_HOSTNAME=users_db
+      - DB_PORT=5432
+      - DB_NAME=users
+      - DB_USER=postgres
+      - DB_PASS=pwd_users
+      - EUREKA_HOSTNAME=discovery
+      - EUREKA_PORT=8761
+      - BROKER_HOSTNAME=broker
+      - BROKER_PORT=5672
+      - TOKEN_SECRET=myt0k3ns3cr3t!!
+  accounts_db:
+    container_name: tx_ms_accounts_db
+    image: postgres
+    volumes:
+      - ./api/accounts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 5433:5433
+    environment:
+      - POSTGRES_PASSWORD=pwd_accounts
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=accounts
+    command: -p 5433
+  accounts:
+    container_name: tx_ms_accounts
+    build:
+      context: ./api/accounts
+    depends_on:
+      - accounts_db
+      - broker
+      - discovery
+    ports:
+      - 8005:8005
+    environment:
+      - PORT=8005
+      - DB_TYPE=postgresql
+      - DB_HOSTNAME=accounts_db
+      - DB_PORT=5433
+      - DB_NAME=accounts
+      - DB_USER=postgres
+      - DB_PASS=pwd_accounts
+      - EUREKA_HOSTNAME=discovery
+      - EUREKA_PORT=8761
+      - BROKER_HOSTNAME=broker
+      - BROKER_PORT=5672
+
+
