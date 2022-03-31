@@ -15,7 +15,7 @@
     <description>Transactions Accounting - Users</description>
 
     <properties>
-        <spring-boot.version>2.2.7.RELEASE</spring-boot.version>
+        <spring-boot.version>2.5.12</spring-boot.version>
         <java.version>12</java.version>
     </properties>
 
